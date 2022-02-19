@@ -43,15 +43,15 @@ func main() {
 	// Init variables
 	ctx := context.Background()
 
-	// Set OIDC, oauth provider
-	provider, err := oidc.NewProvider(ctx, "https://accounts.google.com")
+	// Set OIDC, oauth oidcProvider
+	oidcProvider, err := oidc.NewProvider(ctx, "https://accounts.google.com")
 	if err != nil {
 		log.Fatal(err)
 	}
 	oauth2Config := oauth2.Config{
 		ClientID:     clientID,
 		ClientSecret: clientSecret,
-		Endpoint:     provider.Endpoint(),
+		Endpoint:     oidcProvider.Endpoint(),
 		RedirectURL:  "http://127.0.0.1:3000/auth/google/callback",   // Set redirect url
 		Scopes:       []string{oidc.ScopeOpenID, "profile", "email"}, // Set scope
 	}
@@ -88,24 +88,27 @@ func main() {
 			return
 		}
 
-		// Init ID token verifier
-		oidcConfig := &oidc.Config{
-			ClientID: clientID,
-		}
-		verifier := provider.Verifier(oidcConfig)
+		// Get authorization code from URL
+		authCode := r.URL.Query().Get("code")
 
-		// Get ID token from URL and validate it
-		oauth2Token, err := oauth2Config.Exchange(ctx, r.URL.Query().Get("code"))
+		// Get ID token and access token through authorization code
+		oauth2Token, err := oauth2Config.Exchange(ctx, authCode)
 		if err != nil {
 			http.Error(w, "Failed to exchange token: "+err.Error(), http.StatusInternalServerError)
 			return
 		}
+
+		// Get and validate ID token
+		oidcConfig := &oidc.Config{
+			ClientID: clientID,
+		}
+		oidcVerifier := oidcProvider.Verifier(oidcConfig)
 		rawIDToken, ok := oauth2Token.Extra("id_token").(string)
 		if !ok {
 			http.Error(w, "No id_token field in oauth2 token.", http.StatusInternalServerError)
 			return
 		}
-		idToken, err := verifier.Verify(ctx, rawIDToken)
+		idToken, err := oidcVerifier.Verify(ctx, rawIDToken)
 		if err != nil {
 			http.Error(w, "Failed to verify ID Token: "+err.Error(), http.StatusInternalServerError)
 			return
