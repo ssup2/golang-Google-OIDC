@@ -1,4 +1,4 @@
 # golang-Google-OIDC
 
-* To study OIDC
+* For studing OIDC
 * Original Code : https://github.com/coreos/go-oidc/blob/v3/example/idtoken/app.go
