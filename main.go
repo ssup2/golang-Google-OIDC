@@ -128,8 +128,9 @@ func main() {
 		// Marshal and make up response
 		resp := struct {
 			OAuth2Token   *oauth2.Token
+			IDToken       string
 			IDTokenClaims *json.RawMessage // ID Token payload is just JSON.
-		}{oauth2Token, new(json.RawMessage)}
+		}{oauth2Token, rawIDToken, new(json.RawMessage)}
 		if err := idToken.Claims(&resp.IDTokenClaims); err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
